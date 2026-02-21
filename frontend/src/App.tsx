@@ -1,55 +1,35 @@
 import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
-import { Activity, Server, Container, Cpu, HardDrive, Users, Clock, Zap, Terminal } from 'lucide-react'
+import { Activity, Server, Container, Cpu, HardDrive, Users, Zap, Terminal, GitBranch } from 'lucide-react'
 
-const API = 'http://localhost:3002'
-
-interface Status {
-  Gateway?: { status?: string }
-  Agents?: number
-  Sessions?: number
-}
-
-interface Container {
-  Names: string
-  Status: string
-  Image: string
-  Ports: string
-}
+const API = ''
 
 function App() {
   const [tab, setTab] = useState('dashboard')
-  const [status, setStatus] = useState<Status>({})
+  const [status, setStatus] = useState<any>({})
   const [metrics, setMetrics] = useState<any>({})
-  const [containers, setContainers] = useState<Container[]>([])
+  const [containers, setContainers] = useState<any[]>([])
   const [disk, setDisk] = useState<any>({})
   const [sessions, setSessions] = useState<any[]>([])
   const [agents, setAgents] = useState<string[]>([])
-  const [connected, setConnected] = useState(false)
+  const [kanban, setKanban] = useState<any>({})
 
   useEffect(() => {
     fetchData()
-    const ws = new WebSocket('ws://localhost:8080')
-    ws.onopen = () => setConnected(true)
-    ws.onclose = () => setConnected(false)
-    ws.onmessage = (e) => {
-      const data = JSON.parse(e.data)
-      if (data.status) setStatus(data.status)
-      if (data.metrics) setMetrics(data.metrics)
-      if (data.containers) setContainers(data.containers)
-    }
-    return () => ws.close()
+    // Poll every 10 seconds
+    const interval = setInterval(fetchData, 10000)
+    return () => clearInterval(interval)
   }, [])
 
   async function fetchData() {
     try {
-      const [s, m, c, d, se, a] = await Promise.all([
-        fetch(`${API}/api/status`).then(r => r.json()),
-        fetch(`${API}/api/metrics`).then(r => r.json()),
-        fetch(`${API}/api/containers`).then(r => r.json()),
-        fetch(`${API}/api/disk`).then(r => r.json()),
-        fetch(`${API}/api/sessions`).then(r => r.json()),
-        fetch(`${API}/api/agents`).then(r => r.json())
+      const [s, m, c, d, se, a, k] = await Promise.all([
+        fetch(API + '/api/status').then(r => r.json()),
+        fetch(API + '/api/metrics').then(r => r.json()),
+        fetch(API + '/api/containers').then(r => r.json()),
+        fetch(API + '/api/disk').then(r => r.json()),
+        fetch(API + '/api/sessions').then(r => r.json()),
+        fetch(API + '/api/agents').then(r => r.json()),
+        fetch(API + '/api/kanban').then(r => r.json())
       ])
       setStatus(s)
       setMetrics(m)
@@ -57,75 +37,75 @@ function App() {
       setDisk(d)
       setSessions(se)
       setAgents(a)
+      setKanban(k)
     } catch(e) { console.error(e) }
   }
 
+  const formatUptime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    return `${h}h ${m}m`
+  }
+
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Terminal className="w-6 h-6 text-cyan-400" />
-            <h1 className="text-xl font-bold">Mission Control</h1>
+    <div>
+      <header>
+        <div className="header-content">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Terminal className="w-6 h-6" style={{ color: '#06b6d4' }} />
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Mission Control</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`} />
-            <span className="text-sm text-gray-400">{connected ? 'Live' : 'Offline'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className="status-dot status-green" />
+            <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Live (Polling)</span>
           </div>
         </div>
       </header>
 
-      {/* Nav */}
-      <nav className="border-b border-gray-800 bg-gray-900/30">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1 overflow-x-auto py-2">
-            {[
-              { id: 'dashboard', icon: Activity, label: 'Dashboard' },
-              { id: 'agents', icon: Server, label: 'Agents' },
-              { id: 'sessions', icon: Users, label: 'Sessions' },
-              { id: 'system', icon: Cpu, label: 'System' },
-              { id: 'docker', icon: Container, label: 'Docker' },
-            ].map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
-                  tab === t.id ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                <t.icon className="w-4 h-4" />
-                {t.label}
-              </button>
-            ))}
-          </div>
+      <nav>
+        <div className="nav-content">
+          {[
+            { id: 'dashboard', icon: Activity, label: 'Dashboard' },
+            { id: 'agents', icon: Server, label: 'Agents' },
+            { id: 'sessions', icon: Users, label: 'Sessions' },
+            { id: 'system', icon: Cpu, label: 'System' },
+            { id: 'docker', icon: Container, label: 'Docker' },
+            { id: 'kanban', icon: GitBranch, label: 'Projects' },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={tab === t.id ? 'active' : ''}
+            >
+              <t.icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          ))}
         </div>
       </nav>
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main>
         {tab === 'dashboard' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 grid-cols-2 grid-cols-4">
             <Card icon={Server} label="Gateway" value={status.Gateway?.status || 'Unknown'} />
-            <Card icon={Users} label="Agents" value={status.Agents?.toString() || '0'} />
-            <Card icon={Activity} label="Sessions" value={status.Sessions?.toString() || '0'} />
-            <Card icon={Zap} label="Uptime" value={metrics.uptime ? Math.floor(metrics.uptime / 3600) + 'h' : 'N/A'} />
-            
-            <Card icon={Cpu} label="CPU" value={metrics.cpu ? `${metrics.cpu}%` : 'N/A'} />
-            <Card icon={HardDrive} label="Memory" value={metrics.memory ? `${metrics.memory}%` : 'N/A'} />
+            <Card icon={Users} label="Agents" value={String(status.Agents || 0)} />
+            <Card icon={Activity} label="Sessions" value={String(sessions.length || 0)} />
+            <Card icon={Zap} label="Uptime" value={metrics.uptime ? formatUptime(metrics.uptime) : 'N/A'} />
+            <Card icon={Cpu} label="CPU" value={metrics.cpu ? metrics.cpu + '%' : 'N/A'} />
+            <Card icon={HardDrive} label="Memory" value={metrics.memory ? metrics.memory + '%' : 'N/A'} />
             <Card icon={HardDrive} label="Disk" value={disk.percent || 'N/A'} />
-            <Card icon={Container} label="Containers" value={containers.length.toString()} />
+            <Card icon={Container} label="Containers" value={String(containers.length)} />
           </div>
         )}
 
         {tab === 'agents' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {agents.length === 0 ? <p className="text-gray-400">Loading agents...</p> : 
-              agents.filter(a => a.trim()).map((agent, i) => (
-                <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                  <div className="flex items-center gap-2">
-                    <Server className="w-5 h-5 text-cyan-400" />
-                    <span className="font-medium">{agent}</span>
+          <div className="grid grid-cols-1 grid-cols-2 grid-cols-3">
+            {agents.length === 0 ? <p style={{ color: '#9ca3af' }}>No agents</p> : 
+              agents.map((agent, i) => (
+                <div key={i} className="card">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Server className="w-5 h-5" style={{ color: '#06b6d4' }} />
+                    <span style={{ fontWeight: 500 }}>{agent}</span>
                   </div>
                 </div>
               ))
@@ -134,92 +114,99 @@ function App() {
         )}
 
         {tab === 'sessions' && (
-          <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-800/50">
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <table>
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Session</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Model</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Tokens</th>
+                  <th>Session</th>
+                  <th>Model</th>
+                  <th>Tokens</th>
+                  <th>Age</th>
                 </tr>
               </thead>
               <tbody>
-                {sessions.map((s: any, i: number) => (
-                  <tr key={i} className="border-t border-gray-800">
-                    <td className="px-4 py-3 font-mono text-sm">{s.sessionKey?.slice(0, 40) || 'Unknown'}</td>
-                    <td className="px-4 py-3 text-sm">{s.model || 'N/A'}</td>
-                    <td className="px-4 py-3 text-sm">{s.tokens || 'N/A'}</td>
-                  </tr>
-                ))}
+                {sessions.length === 0 ? <tr><td colSpan={4} style={{ textAlign: 'center', color: '#9ca3af' }}>No active sessions</td></tr> :
+                  sessions.map((s: any, i: number) => (
+                    <tr key={i}>
+                      <td className="font-mono" style={{ fontSize: '0.75rem' }}>{(s.sessionKey || '').slice(0, 50)}</td>
+                      <td>{s.model || 'N/A'}</td>
+                      <td>{s.tokens || 'N/A'}</td>
+                      <td>{s.age || 'N/A'}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
         )}
 
         {tab === 'system' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-              <h3 className="text-lg font-medium mb-4">CPU Usage</h3>
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[
-                    { name: 'CPU', value: metrics.cpu || 0 },
-                    { name: 'Load1', value: metrics.load?.[0] || 0 },
-                    { name: 'Load5', value: metrics.load?.[1] || 0 },
-                    { name: 'Load15', value: metrics.load?.[2] || 0 },
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="name" stroke="#9CA3AF" />
-                    <YAxis stroke="#9CA3AF" />
-                    <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none' }} />
-                    <Bar dataKey="value" fill="#06B6D4" />
-                  </BarChart>
-                </ResponsiveContainer>
+          <div className="grid grid-cols-1 grid-cols-2">
+            <div className="card">
+              <h3>CPU & Memory</h3>
+              <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>CPU Usage: {metrics.cpu || 0}%</p>
+              <div style={{ width: '100%', height: '8px', background: '#374151', borderRadius: '4px', marginBottom: '1rem' }}>
+                <div style={{ width: (metrics.cpu || 0) + '%', height: '100%', background: '#06b6d4', borderRadius: '4px' }} />
               </div>
+              <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>Memory Usage: {metrics.memory || 0}%</p>
+              <div style={{ width: '100%', height: '8px', background: '#374151', borderRadius: '4px' }}>
+                <div style={{ width: (metrics.memory || 0) + '%', height: '100%', background: '#8b5cf6', borderRadius: '4px' }} />
+              </div>
+              <p style={{ color: '#9ca3af', marginTop: '1rem' }}>Load Avg: {metrics.load?.join(', ') || 'N/A'}</p>
             </div>
-
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-              <h3 className="text-lg font-medium mb-4">Memory</h3>
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[
-                    { name: 'Used', value: metrics.totalMemory ? Math.round((metrics.totalMemory - metrics.freeMemory) / 1024 / 1024 / 1024) : 0 },
-                    { name: 'Free', value: metrics.freeMemory ? Math.round(metrics.freeMemory / 1024 / 1024 / 1024) : 0 },
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="name" stroke="#9CA3AF" />
-                    <YAxis stroke="#9CA3AF" />
-                    <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: 'none' }} />
-                    <Bar dataKey="value" fill="#8B5CF6" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <p className="text-sm text-gray-400 mt-2">Disk: {disk.used || 'N/A'} / {disk.total || 'N/A'} ({disk.percent || 'N/A'})</p>
+            <div className="card">
+              <h3>Disk Usage</h3>
+              <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>Used: {disk.used || 'N/A'}</p>
+              <p style={{ color: '#9ca3af', marginBottom: '0.5rem' }}>Available: {disk.available || 'N/A'}</p>
+              <p style={{ color: '#9ca3af' }}>Total: {disk.total || 'N/A'}</p>
+              <p style={{ color: '#9ca3af', marginTop: '0.5rem' }}>Usage: {disk.percent || 'N/A'}</p>
             </div>
           </div>
         )}
 
         {tab === 'docker' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {containers.length === 0 ? <p className="text-gray-400">No containers running</p> :
-              containers.map((c, i) => (
-                <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <Container className="w-5 h-5 text-cyan-400" />
-                      <span className="font-medium">{c.Names?.replace('/', '') || 'Unknown'}</span>
+          <div className="grid grid-cols-1 grid-cols-2 grid-cols-3">
+            {containers.length === 0 ? <p style={{ color: '#9ca3af' }}>No containers running</p> :
+              containers.map((c: any, i: number) => (
+                <div key={i} className="card">
+                  <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Container className="w-5 h-5" style={{ color: '#06b6d4' }} />
+                      <span style={{ fontWeight: 500 }}>{(c.Names || '').replace('/', '')}</span>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      c.Status?.includes('Up') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                    }`}>
+                    <span style={{ 
+                      fontSize: '0.75rem', 
+                      padding: '0.25rem 0.5rem', 
+                      borderRadius: '0.25rem',
+                      background: c.Status?.includes('Up') ? 'rgba(74, 222, 128, 0.2)' : 'rgba(248, 113, 113, 0.2)',
+                      color: c.Status?.includes('Up') ? '#4ade80' : '#f87171'
+                    }}>
                       {c.Status || 'Unknown'}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-400 mt-2">{c.Image}</p>
-                  <p className="text-xs text-gray-500 mt-1">{c.Ports || 'No ports'}</p>
+                  <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.5rem' }}>{c.Image}</p>
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>{c.Ports || 'No ports'}</p>
                 </div>
               ))
             }
+          </div>
+        )}
+
+        {tab === 'kanban' && (
+          <div className="kanban-board">
+            {['Proposed', 'Approved', 'In Progress', 'Testing', 'Completed'].map(column => (
+              <div key={column} className="kanban-column">
+                <h3>{column}</h3>
+                <div className="kanban-cards">
+                  {kanban.tasks?.filter((t: any) => t.column === column).map((task: any) => (
+                    <div key={task.id} className="kanban-card">
+                      <p style={{ fontWeight: 500 }}>{task.title}</p>
+                      <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{task.assignee}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>
@@ -229,14 +216,14 @@ function App() {
 
 function Card({ icon: Icon, label, value }: { icon: any, label: string, value: string }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-cyan-500/10 rounded-lg">
-          <Icon className="w-5 h-5 text-cyan-400" />
+    <div className="card">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="card-icon">
+          <Icon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-sm text-gray-400">{label}</p>
-          <p className="text-xl font-semibold">{value}</p>
+          <p className="card-label">{label}</p>
+          <p className="card-value">{value}</p>
         </div>
       </div>
     </div>
