@@ -10,6 +10,7 @@ import githubRoutes from './routes/github.js';
 import prometheusRoutes from './routes/prometheus.js';
 import sessionsRoutes from './routes/sessions.js';
 import cronRoutes from './routes/cron.js';
+import kanbanRoutes from './routes/kanban.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +33,7 @@ app.use('/api', githubRoutes);
 app.use('/api', prometheusRoutes);
 app.use('/api', sessionsRoutes);
 app.use('/api', cronRoutes);
+app.use('/api', kanbanRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

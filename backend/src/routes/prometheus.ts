@@ -58,4 +58,24 @@ router.get('/prometheus/containers', async (req: Request, res: Response): Promis
   }
 });
 
+// Execute custom Prometheus query
+router.get('/prometheus/query', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const query = req.query.query as string;
+    if (!query) {
+      res.status(400).json({ error: 'Query parameter is required' });
+      return;
+    }
+    
+    const result = await prometheusService.query(query);
+    res.json({
+      query,
+      result
+    });
+  } catch (error) {
+    console.error('Error in /api/prometheus/query:', error);
+    res.status(500).json({ error: 'Failed to execute Prometheus query' });
+  }
+});
+
 export default router;
