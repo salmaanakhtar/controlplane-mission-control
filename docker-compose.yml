@@ -1,0 +1,25 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "0.0.0.0:3002:3002"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "0.0.0.0:3003:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  wsproxy:
+    image: alpine/socat:latest
+    command: tcp-listen:8080,fork,reuseaddr tcp-connect:backend:3002
+    ports:
+      - "0.0.0.0:8080:8080"
+    depends_on:
+      - backend
+    restart: unless-stopped
